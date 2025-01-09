@@ -88,7 +88,7 @@ const Embedded = ({ siteInfo, isShow, onClose, appBaseUrl, accessToken, classNam
         copy(splitUrl[1])
     }
     else {
-      copy(OPTION_MAP[option].getContent(appBaseUrl, accessToken, themeBuilder.theme?.primaryColor ?? '#1C64F2', isTestEnv))
+      copy(OPTION_MAP[option].getContent(appBaseUrl, accessToken, themeBuilder.theme?.primaryColor ?? '#0063b9', isTestEnv))
     }
     setIsCopied({ ...isCopied, [option]: true })
   }
@@ -167,7 +167,7 @@ const Embedded = ({ siteInfo, isShow, onClose, appBaseUrl, accessToken, classNam
         </div>
         <div className="flex items-start justify-start w-full gap-2 p-3 overflow-x-auto">
           <div className="grow shrink basis-0 text-slate-700 text-[13px] leading-tight font-mono">
-            <pre className='select-text'>{OPTION_MAP[option].getContent(appBaseUrl, accessToken, themeBuilder.theme?.primaryColor ?? '#1C64F2', isTestEnv)}</pre>
+            <pre className='select-text'>{OPTION_MAP[option].getContent(appBaseUrl, accessToken, themeBuilder.theme?.primaryColor ?? '#0063b9', isTestEnv)}</pre>
           </div>
         </div>
       </div>
