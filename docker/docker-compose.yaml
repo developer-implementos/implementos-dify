@@ -393,6 +393,7 @@ x-shared-env: &shared-api-worker-env
 services:
   # API service
   api:
+    container_name: api
     image: langgenius/dify-api:0.15.0
     restart: always
     environment:
@@ -416,6 +417,7 @@ services:
   # worker service
   # The Celery worker for processing the queue.
   worker:
+    container_name: worker
     image: langgenius/dify-api:0.15.0
     restart: always
     environment:
@@ -438,6 +440,7 @@ services:
 
   # Frontend web application.
   web:
+    container_name: web
     image: langgenius/dify-web:0.15.0
     restart: always
     environment:
@@ -451,6 +454,7 @@ services:
 
   # The postgres database.
   db:
+    container_name: db
     image: postgres:15-alpine
     restart: always
     environment:
@@ -474,6 +478,7 @@ services:
 
   # The redis cache.
   redis:
+    container_name: redis
     image: redis:6-alpine
     restart: always
     environment:
@@ -488,6 +493,7 @@ services:
 
   # The DifySandbox
   sandbox:
+    container_name: sandbox
     image: langgenius/dify-sandbox:0.2.10
     restart: always
     environment:
@@ -512,6 +518,7 @@ services:
   # for more information, please refer to
   # https://docs.dify.ai/learn-more/faq/install-faq#id-18.-why-is-ssrf_proxy-needed
   ssrf_proxy:
+    container_name: ssrf_proxy
     image: ubuntu/squid:latest
     restart: always
     volumes:
@@ -552,6 +559,7 @@ services:
   # The nginx reverse proxy.
   # used for reverse proxying the API service and Web service.
   nginx:
+    container_name: nginx
     image: nginx:latest
     restart: always
     volumes:
@@ -601,6 +609,7 @@ services:
 
   # The Weaviate vector store.
   weaviate:
+    container_name: weaviate
     image: semitechnologies/weaviate:1.19.0
     profiles:
       - ''
