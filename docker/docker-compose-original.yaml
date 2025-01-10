@@ -394,9 +394,7 @@ services:
   # API service
   api:
     container_name: api
-    build: 
-      context: ./api
-      dockerfile: Dockerfile
+    image: langgenius/dify-api:0.15.0
     restart: always
     environment:
       # Use the shared environment variables.
@@ -420,9 +418,7 @@ services:
   # The Celery worker for processing the queue.
   worker:
     container_name: worker
-    build:
-      context: ./api
-      dockerfile: Dockerfile
+    image: langgenius/dify-api:0.15.0
     restart: always
     environment:
       # Use the shared environment variables.
@@ -445,9 +441,7 @@ services:
   # Frontend web application.
   web:
     container_name: web
-    build:
-      context: ./web
-      dockerfile: Dockerfile
+    image: langgenius/dify-web:0.15.0
     restart: always
     environment:
       CONSOLE_API_URL: ${CONSOLE_API_URL:-}
@@ -615,7 +609,7 @@ services:
 
   # The Weaviate vector store.
   weaviate:
-    
+    container_name: weaviate
     image: semitechnologies/weaviate:1.19.0
     profiles:
       - ''
