@@ -1,6 +1,6 @@
 const translation = {
   pageTitle: '¡Hola, vamos a empezar!👋',
-  welcome: 'Bienvenido a Dify, por favor inicia sesión para continuar.',
+  welcome: 'Bienvenido a Implementos Dify, por favor inicia sesión para continuar.',
   email: 'Correo electrónico',
   emailPlaceholder: 'Tu correo electrónico',
   password: 'Contraseña',
@@ -20,7 +20,7 @@ const translation = {
   invitationCodePlaceholder: 'Tu código de invitación',
   interfaceLanguage: 'Idioma de interfaz',
   timezone: 'Zona horaria',
-  go: 'Ir a Dify',
+  go: 'Ir a Implementos Dify',
   sendUsMail: 'Envíanos un correo electrónico con tu presentación y nosotros nos encargaremos de la solicitud de invitación.',
   acceptPP: 'He leído y acepto la política de privacidad',
   reset: 'Por favor, ejecuta el siguiente comando para restablecer tu contraseña',
