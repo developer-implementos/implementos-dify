@@ -128,23 +128,35 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
     newConversationInputsRef.current = newInputs
     setNewConversationInputs(newInputs)
   }, [])
+
   const inputsForms = useMemo(() => {
+    // Match variables con query params url
+    const queryString = window.location.search
+    const urlParams = new URLSearchParams(queryString)
+    const queryParamsDict = Object.fromEntries(urlParams)
+
     return (appParams?.user_input_form || []).filter((item: any) => !item.external_data_tool).map((item: any) => {
       if (item.paragraph) {
+        const paramValue = queryParamsDict[item.paragraph.variable]
         return {
           ...item.paragraph,
+          default: paramValue || '',
           type: 'paragraph',
         }
       }
       if (item.number) {
+        const paramValue = queryParamsDict[item.number.variable]
         return {
           ...item.number,
+          default: paramValue || '',
           type: 'number',
         }
       }
       if (item.select) {
+        const paramValue = queryParamsDict[item.select.variable]
         return {
           ...item.select,
+          default: paramValue || '',
           type: 'select',
         }
       }
@@ -163,8 +175,10 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
         }
       }
 
+      const paramValue = queryParamsDict[item['text-input'].variable]
       return {
         ...item['text-input'],
+        default: paramValue || '',
         type: 'text-input',
       }
     })
@@ -221,7 +235,7 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
   }, [conversationList, currentConversationId, pinnedConversationList])
 
   const { notify } = useToastContext()
-  const checkInputsRequired = useCallback((silent?: boolean) => {
+  const checkInputsRequired = useCallback((silent?: boolean, silentAlert?: boolean) => {
     let hasEmptyInput = ''
     let fileIsUploading = false
     const requiredVars = inputsForms.filter(({ required }) => required)
@@ -247,12 +261,16 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
     }
 
     if (hasEmptyInput) {
-      notify({ type: 'error', message: t('appDebug.errorMessage.valueOfVarRequired', { key: hasEmptyInput }) })
+      if (!silentAlert)
+        notify({ type: 'error', message: t('appDebug.errorMessage.valueOfVarRequired', { key: hasEmptyInput }) })
+
       return false
     }
 
     if (fileIsUploading) {
-      notify({ type: 'info', message: t('appDebug.errorMessage.waitForFileUpload') })
+      if (silentAlert)
+        notify({ type: 'info', message: t('appDebug.errorMessage.waitForFileUpload') })
+
       return
     }
 
@@ -264,6 +282,17 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
       setShowNewConversationItemInList(true)
     }
   }, [setShowConfigPanelBeforeChat, setShowNewConversationItemInList, checkInputsRequired])
+
+  // Automáticamente inicia conversación según query params
+  useEffect(() => {
+    if (showConfigPanelBeforeChat && Object.keys(newConversationInputs).length > 0) {
+      const isComplete = checkInputsRequired(false, true)
+
+      if (isComplete)
+        handleStartChat()
+    }
+  }, [newConversationInputs, showConfigPanelBeforeChat])
+
   const currentChatInstanceRef = useRef<{ handleStop: () => void }>({ handleStop: () => { } })
   const handleChangeConversation = useCallback((conversationId: string) => {
     currentChatInstanceRef.current.handleStop()
@@ -288,7 +317,7 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
       setShowNewConversationItemInList(true)
       handleNewConversationInputsChange({})
     }
-  }, [handleChangeConversation, currentConversationId, handleConversationIdInfoChange, setShowConfigPanelBeforeChat, setShowNewConversationItemInList, showNewConversationItemInList, handleNewConversationInputsChange])
+  }, [handleChangeConversation, currentConversationId, handleConversationIdInfoChange, setShowConfigPanelBeforeChat, setShowNewConversationItemInList, showNewConversationItemInList, handleNewConversationInputsChange, newConversationInputs])
   const handleUpdateConversationList = useCallback(() => {
     mutateAppConversationData()
     mutateAppPinnedConversationData()
