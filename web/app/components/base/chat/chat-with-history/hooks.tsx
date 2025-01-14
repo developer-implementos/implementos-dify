@@ -285,7 +285,9 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
 
   // Automáticamente inicia conversación según query params
   useEffect(() => {
-    if (showConfigPanelBeforeChat && Object.keys(newConversationInputs).length > 0) {
+    const hasDefaultValues = inputsForms.every(form => form.default)
+
+    if (hasDefaultValues && showConfigPanelBeforeChat && Object.keys(newConversationInputs).length > 0) {
       const isComplete = checkInputsRequired(false, true)
 
       if (isComplete)
