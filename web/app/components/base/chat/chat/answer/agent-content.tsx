@@ -11,10 +11,12 @@ import { getProcessedFilesFromResponse } from '@/app/components/base/file-upload
 type AgentContentProps = {
   item: ChatItem
   responding?: boolean
+  isDebugMode?: boolean
 }
 const AgentContent: FC<AgentContentProps> = ({
   item,
   responding,
+  isDebugMode,
 }) => {
   const {
     annotation,
@@ -33,7 +35,7 @@ const AgentContent: FC<AgentContentProps> = ({
           )}
           {/* {item.tool} */}
           {/* perhaps not use tool */}
-          {!!thought.tool && (
+          {!!thought.tool && isDebugMode && (
             <Thought
               thought={thought}
               isFinished={!!thought.observation || !responding}

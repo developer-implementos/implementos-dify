@@ -100,6 +100,17 @@ const Answer: FC<AnswerProps> = ({
     }
   }, [])
 
+  const isDebugMode = () => {
+    // Verificar si estamos en la URL de chat (no en la vista de previsualización)
+    const isShareOrEmbedView = window.location.pathname.includes('/chat/')
+    if (!isShareOrEmbedView)
+      return true // Mostrar siempre en vista de previsualización
+
+    // Verificar parámetro debug en URL
+    const urlParams = new URLSearchParams(window.location.search)
+    return urlParams.get('_debug') === '1'
+  }
+
   return (
     <div className='flex mb-2 last:mb-0'>
       <div className='shrink-0 relative w-10 h-10'>
@@ -168,6 +179,7 @@ const Answer: FC<AnswerProps> = ({
                 <AgentContent
                   item={item}
                   responding={responding}
+                  isDebugMode={isDebugMode()}
                 />
               )
             }
