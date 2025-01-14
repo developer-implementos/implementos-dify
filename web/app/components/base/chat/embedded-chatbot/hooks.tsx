@@ -118,7 +118,7 @@ export const useEmbeddedChatbot = () => {
       if (item.number) {
         const paramValue = queryParamsDict[item.number.variable]
 
-        const convertedNumber = Number(initInputs[item.number.variable || paramValue]) ?? undefined
+        const convertedNumber = Number(initInputs[item.number.variable] || paramValue) ?? undefined
         return {
           ...item.number,
           default: convertedNumber || item.default,
@@ -131,7 +131,7 @@ export const useEmbeddedChatbot = () => {
         const isInputInOptions = item.select.options.includes(initInputs[item.select.variable])
         return {
           ...item.select,
-          default: (isInputInOptions ? initInputs[item.select.variable || paramValue] : undefined) || item.default,
+          default: (isInputInOptions ? initInputs[item.select.variable] : undefined) || paramValue || item.default,
           type: 'select',
         }
       }
@@ -220,7 +220,7 @@ export const useEmbeddedChatbot = () => {
   }, [conversationList, currentConversationId, pinnedConversationList])
 
   const { notify } = useToastContext()
-  const checkInputsRequired = useCallback((silent?: boolean) => {
+  const checkInputsRequired = useCallback((silent?: boolean, silentAlert?: boolean) => {
     let hasEmptyInput = ''
     let fileIsUploading = false
     const requiredVars = inputsForms.filter(({ required }) => required)
@@ -246,12 +246,14 @@ export const useEmbeddedChatbot = () => {
     }
 
     if (hasEmptyInput) {
-      notify({ type: 'error', message: t('appDebug.errorMessage.valueOfVarRequired', { key: hasEmptyInput }) })
+      if (!silentAlert)
+        notify({ type: 'error', message: t('appDebug.errorMessage.valueOfVarRequired', { key: hasEmptyInput }) })
       return false
     }
 
     if (fileIsUploading) {
-      notify({ type: 'info', message: t('appDebug.errorMessage.waitForFileUpload') })
+      if (!silentAlert)
+        notify({ type: 'info', message: t('appDebug.errorMessage.waitForFileUpload') })
       return
     }
 
@@ -263,6 +265,19 @@ export const useEmbeddedChatbot = () => {
       setShowNewConversationItemInList(true)
     }
   }, [setShowConfigPanelBeforeChat, setShowNewConversationItemInList, checkInputsRequired])
+
+  // Automáticamente inicia conversación según query params
+  useEffect(() => {
+    const hasDefaultValues = inputsForms.every(form => form.default)
+
+    if (hasDefaultValues && showConfigPanelBeforeChat && Object.keys(newConversationInputs).length > 0) {
+      const isComplete = checkInputsRequired(false, true)
+
+      if (isComplete)
+        handleStartChat()
+    }
+  }, [newConversationInputs, showConfigPanelBeforeChat])
+
   const currentChatInstanceRef = useRef<{ handleStop: () => void }>({ handleStop: () => { } })
   const handleChangeConversation = useCallback((conversationId: string) => {
     currentChatInstanceRef.current.handleStop()
@@ -285,9 +300,14 @@ export const useEmbeddedChatbot = () => {
       handleConversationIdInfoChange('')
       setShowConfigPanelBeforeChat(true)
       setShowNewConversationItemInList(true)
-      handleNewConversationInputsChange({})
+
+      const conversationInputs: Record<string, any> = {}
+      inputsForms.forEach((item: any) => {
+        conversationInputs[item.variable] = item.default || null
+      })
+      handleNewConversationInputsChange(conversationInputs)
     }
-  }, [handleChangeConversation, currentConversationId, handleConversationIdInfoChange, setShowConfigPanelBeforeChat, setShowNewConversationItemInList, showNewConversationItemInList, handleNewConversationInputsChange])
+  }, [handleChangeConversation, currentConversationId, handleConversationIdInfoChange, setShowConfigPanelBeforeChat, setShowNewConversationItemInList, showNewConversationItemInList, handleNewConversationInputsChange, inputsForms])
 
   const handleNewConversationCompleted = useCallback((newConversationId: string) => {
     setNewConversationId(newConversationId)
