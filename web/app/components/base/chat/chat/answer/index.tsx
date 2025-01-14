@@ -102,7 +102,7 @@ const Answer: FC<AnswerProps> = ({
 
   const isDebugMode = () => {
     // Verificar si estamos en la URL de chat (no en la vista de previsualización)
-    const isShareOrEmbedView = window.location.pathname.includes('/chat/')
+    const isShareOrEmbedView = window.location.pathname.includes('/chat/') || window.location.pathname.includes('/chatbot/')
     if (!isShareOrEmbedView)
       return true // Mostrar siempre en vista de previsualización
 

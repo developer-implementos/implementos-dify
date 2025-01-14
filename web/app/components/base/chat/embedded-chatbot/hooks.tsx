@@ -96,20 +96,29 @@ export const useEmbeddedChatbot = () => {
     setNewConversationInputs(newInputs)
   }, [])
   const inputsForms = useMemo(() => {
+    // Match variables con query params url
+    const queryString = window.location.search
+    const urlParams = new URLSearchParams(queryString)
+    const queryParamsDict = Object.fromEntries(urlParams)
+
     return (appParams?.user_input_form || []).filter((item: any) => !item.external_data_tool).map((item: any) => {
       if (item.paragraph) {
+        const paramValue = queryParamsDict[item.paragraph.variable]
+
         let value = initInputs[item.paragraph.variable]
         if (value && item.paragraph.max_length && value.length > item.paragraph.max_length)
           value = value.slice(0, item.paragraph.max_length)
 
         return {
           ...item.paragraph,
-          default: value || item.default,
+          default: value || paramValue || item.default || '',
           type: 'paragraph',
         }
       }
       if (item.number) {
-        const convertedNumber = Number(initInputs[item.number.variable]) ?? undefined
+        const paramValue = queryParamsDict[item.number.variable]
+
+        const convertedNumber = Number(initInputs[item.number.variable || paramValue]) ?? undefined
         return {
           ...item.number,
           default: convertedNumber || item.default,
@@ -117,10 +126,12 @@ export const useEmbeddedChatbot = () => {
         }
       }
       if (item.select) {
+        const paramValue = queryParamsDict[item.select.variable]
+
         const isInputInOptions = item.select.options.includes(initInputs[item.select.variable])
         return {
           ...item.select,
-          default: (isInputInOptions ? initInputs[item.select.variable] : undefined) || item.default,
+          default: (isInputInOptions ? initInputs[item.select.variable || paramValue] : undefined) || item.default,
           type: 'select',
         }
       }
@@ -139,13 +150,15 @@ export const useEmbeddedChatbot = () => {
         }
       }
 
+      const paramValue = queryParamsDict[item['text-input'].variable]
+
       let value = initInputs[item['text-input'].variable]
       if (value && item['text-input'].max_length && value.length > item['text-input'].max_length)
         value = value.slice(0, item['text-input'].max_length)
 
       return {
         ...item['text-input'],
-        default: value || item.default,
+        default: value || paramValue || item.default || '',
         type: 'text-input',
       }
     })
