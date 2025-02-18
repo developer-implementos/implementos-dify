@@ -53,6 +53,7 @@ class FunctionCallAgentRunner(BaseAgentRunner):
         function_call_state = True
         llm_usage: dict[str, LLMUsage] = {"usage": LLMUsage.empty_usage()}
         final_answer = ""
+        tool_response = ""  # Variable para guardar la respuesta de la herramienta directa
 
         # get tracing instance
         trace_manager = app_generate_entity.trace_manager
@@ -85,6 +86,7 @@ class FunctionCallAgentRunner(BaseAgentRunner):
             # recalc llm max tokens
             prompt_messages = self._organize_prompt_messages()
             self.recalc_llm_max_tokens(self.model_config, prompt_messages)
+            
             # invoke model
             chunks: Union[Generator[LLMResultChunk, None, None], LLMResult] = model_instance.invoke_llm(
                 prompt_messages=prompt_messages,
@@ -152,7 +154,6 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                             {tool_call[1]: tool_call[2] for tool_call in tool_calls}, ensure_ascii=False
                         )
                     except json.JSONDecodeError as e:
-                        # ensure ascii to avoid encoding error
                         tool_call_inputs = json.dumps({tool_call[1]: tool_call[2] for tool_call in tool_calls})
 
                 if result.usage:
@@ -219,8 +220,6 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                 QueueAgentThoughtEvent(agent_thought_id=agent_thought.id), PublishFrom.APPLICATION_MANAGER
             )
 
-            final_answer += response + "\n"
-
             # call tools
             tool_responses = []
             for tool_call_id, tool_call_name, tool_call_args in tool_calls:
@@ -233,31 +232,66 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                         "meta": ToolInvokeMeta.error_instance(f"there is not a tool named {tool_call_name}").to_dict(),
                     }
                 else:
-                    # invoke tool
-                    tool_invoke_response, message_files, tool_invoke_meta = ToolEngine.agent_invoke(
-                        tool=tool_instance,
-                        tool_parameters=tool_call_args,
-                        user_id=self.user_id,
-                        tenant_id=self.tenant_id,
-                        message=self.message,
-                        invoke_from=self.application_generate_entity.invoke_from,
-                        agent_tool_callback=self.agent_callback,
-                        trace_manager=trace_manager,
-                    )
-                    # publish files
-                    for message_file_id, save_as in message_files:
-                        if save_as:
-                            if self.variables_pool:
-                                self.variables_pool.set_file(
-                                    tool_name=tool_call_name, value=message_file_id, name=save_as
-                                )
-
-                        # publish message file
-                        self.queue_manager.publish(
-                            QueueMessageFileEvent(message_file_id=message_file_id), PublishFrom.APPLICATION_MANAGER
+                    # Verifica si la herramienta comienza con "_"
+                    if tool_call_name.startswith('_'):
+                        # invoke tool
+                        tool_invoke_response, message_files, tool_invoke_meta = ToolEngine.agent_invoke(
+                            tool=tool_instance,
+                            tool_parameters=tool_call_args,
+                            user_id=self.user_id,
+                            tenant_id=self.tenant_id,
+                            message=self.message,
+                            invoke_from=self.application_generate_entity.invoke_from,
+                            agent_tool_callback=self.agent_callback,
+                            trace_manager=trace_manager,
                         )
-                        # add message file ids
-                        message_file_ids.append(message_file_id)
+                        
+                        # Guarda la respuesta de la herramienta directa
+                        tool_response = str(tool_invoke_response)
+                        final_answer = tool_response
+                        function_call_state = False  # Detiene el ciclo
+                        
+                        # publish files if any
+                        for message_file_id, save_as in message_files:
+                            if save_as:
+                                if self.variables_pool:
+                                    self.variables_pool.set_file(
+                                        tool_name=tool_call_name,
+                                        value=message_file_id,
+                                        name=save_as
+                                    )
+                            self.queue_manager.publish(
+                                QueueMessageFileEvent(message_file_id=message_file_id),
+                                PublishFrom.APPLICATION_MANAGER
+                            )
+                            message_file_ids.append(message_file_id)
+                    else:
+                        # Normal tool execution
+                        tool_invoke_response, message_files, tool_invoke_meta = ToolEngine.agent_invoke(
+                            tool=tool_instance,
+                            tool_parameters=tool_call_args,
+                            user_id=self.user_id,
+                            tenant_id=self.tenant_id,
+                            message=self.message,
+                            invoke_from=self.application_generate_entity.invoke_from,
+                            agent_tool_callback=self.agent_callback,
+                            trace_manager=trace_manager,
+                        )
+
+                        # publish files
+                        for message_file_id, save_as in message_files:
+                            if save_as:
+                                if self.variables_pool:
+                                    self.variables_pool.set_file(
+                                        tool_name=tool_call_name,
+                                        value=message_file_id,
+                                        name=save_as
+                                    )
+                            self.queue_manager.publish(
+                                QueueMessageFileEvent(message_file_id=message_file_id),
+                                PublishFrom.APPLICATION_MANAGER
+                            )
+                            message_file_ids.append(message_file_id)
 
                     tool_response = {
                         "tool_call_id": tool_call_id,
@@ -297,6 +331,10 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                     QueueAgentThoughtEvent(agent_thought_id=agent_thought.id), PublishFrom.APPLICATION_MANAGER
                 )
 
+            # Si no tenemos una respuesta directa de herramienta, agregamos la respuesta del LLM
+            if not tool_response or not any(t[1].startswith('_') for t in tool_calls):
+                final_answer += response + "\n"
+
             # update prompt tool
             for prompt_tool in prompt_messages_tools:
                 self.update_prompt_message_tool(tool_instances[prompt_tool.name], prompt_tool)
@@ -305,6 +343,7 @@ class FunctionCallAgentRunner(BaseAgentRunner):
 
         if self.variables_pool and self.db_variables_pool:
             self.update_db_variables(self.variables_pool, self.db_variables_pool)
+
         # publish end event
         self.queue_manager.publish(
             QueueMessageEndEvent(
