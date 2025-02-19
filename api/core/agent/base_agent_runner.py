@@ -472,25 +472,26 @@ class BaseAgentRunner(AppRunner):
                             tool_responses = dict.fromkeys(tools, agent_thought.observation)
 
                         for tool in tools:
-                            # generate a uuid for tool call
-                            tool_call_id = str(uuid.uuid4())
-                            tool_calls.append(
-                                AssistantPromptMessage.ToolCall(
-                                    id=tool_call_id,
-                                    type="function",
-                                    function=AssistantPromptMessage.ToolCall.ToolCallFunction(
+                            if not tool.startswith("_"):
+                                # generate a uuid for tool call
+                                tool_call_id = str(uuid.uuid4())
+                                tool_calls.append(
+                                    AssistantPromptMessage.ToolCall(
+                                        id=tool_call_id,
+                                        type="function",
+                                        function=AssistantPromptMessage.ToolCall.ToolCallFunction(
+                                            name=tool,
+                                            arguments=json.dumps(tool_inputs.get(tool, {})),
+                                        ),
+                                    )
+                                )
+                                tool_call_response.append(
+                                    ToolPromptMessage(
+                                        content=tool_responses.get(tool, agent_thought.observation),
                                         name=tool,
-                                        arguments=json.dumps(tool_inputs.get(tool, {})),
-                                    ),
+                                        tool_call_id=tool_call_id,
+                                    )
                                 )
-                            )
-                            tool_call_response.append(
-                                ToolPromptMessage(
-                                    content=tool_responses.get(tool, agent_thought.observation),
-                                    name=tool,
-                                    tool_call_id=tool_call_id,
-                                )
-                            )
 
                         result.extend(
                             [
